@@ -1,0 +1,68 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- hosts: localhost
+  gather_facts: False
+  tags: once
+
+  vars: &vars
+
+    data_dir:     ext/data
+    data_version: v0.8.3
+    data:         '{{ data_dir}}/{{ data_version }}/templates.out'
+    local:        '{{ ansible_hostname }}'
+    user:         '{{ ansible_user_id }}'
+
+  tasks:
+
+    - git:
+        repo: git@github.com:Epiconcept-Paris/infra-data.git
+        version: '{{ data_version }}'
+        dest: '{{ data_dir}}/{{ data_version }}'
+        key_file: ~/id_epiconcept
+      tags: git
+      name: get infra-data
+
+- hosts: localhost
+  gather_facts: True
+  tags: main
+
+  vars: *vars
+
+  tasks:
+
+    - copy:
+        src: '{{ data}}/config/ssh-config-{{ local }}-{{ user }}'
+        dest: '{{ playbook_dir}}/ssh-config'
+        mode: 0444
+      name: config
+
+    - copy:
+        src: '{{ data}}/inventory/{{ item }}'
+        dest: '{{ playbook_dir}}/inventory/{{ item }}.ext'
+        mode: 0444
+      with_items:
+        - ansible_ssh_host
+        - local
+        - networks
+        - stunnel4_servers
+        - stunnel4_clients
+        - static_groups
+        - ansible_become_pass_{{ user }}
+      name: inventory
+
+    - file:
+        path: '{{ playbook_dir}}/vars/ext'
+        state: directory
+
+    - copy:
+        src: '{{ data}}/vars/{{ item }}.yml'
+        dest: '{{ playbook_dir}}/vars/ext/{{ item }}.yml'
+        mode: 0444
+      with_items:
+        - ips
+        - networks
+        - vms
+        - stunnel4s
+        - stunnel4vm
+      name: vars

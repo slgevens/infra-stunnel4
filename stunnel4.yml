@@ -1,0 +1,68 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- hosts: stunnel4_servers
+  gather_facts: False
+  tags: servers
+
+  vars_files: &stunnel4
+    - vars/ext/stunnel4s.yml
+    - vars/ext/stunnel4vm.yml
+
+  tasks:
+
+    - apt: name=stunnel4 state=present
+      become: True
+
+    - include_role: name=selfsigned-cert-ansible
+      become: true
+
+    - set_fact: { stunnel4_clients: [] }
+    - set_fact:
+        stunnel4_clients: '{{ stunnel4vm_name[inventory_hostname].stunnels }}'
+      when: inventory_hostname in stunnel4vm_list
+
+    - template:
+        src: stunnel4_server.j2
+        dest: /etc/stunnel/stunnel.conf
+        mode: 0444
+        
+      become: True
+      vars:
+        server:   '{{ stunnel4_servers_node[inventory_hostname] }}'
+        clients:
+          data:   '{{ stunnel4_clients_name }}'
+          list:   '{{ stunnel4_clients }}'
+
+    - service: name=stunnel4 state=restarted
+      become: True
+      
+- hosts: stunnel4_clients
+  gather_facts: False
+  tags: clients
+
+  vars_files: *stunnel4
+
+  tasks:
+
+    - apt: name=stunnel4 state=present
+      become: True
+      
+    - include_role: name=selfsigned-cert-ansible
+      become: True
+
+    - template:
+        src: stunnel4_server.j2
+        dest: /etc/stunnel/stunnel.conf
+        mode: 0444
+        
+      become: True      
+      vars:
+        server:   False
+        clients:
+          data:   '{{ stunnel4_clients_name }}'
+          list:   '{{ stunnel4vm_name[inventory_hostname].stunnels }}'
+          
+    - service: name=stunnel4 state=restarted
+      become: True
+      
