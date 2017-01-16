@@ -1,1 +1,18 @@
 *~
+.cache/
+.retry/
+.hide/
+
+roles/
+log/
+tmp/
+ext/
+site/
+
+README.html
+plugins/filter/*.pyc
+
+# generated
+ssh-config
+vars/ext/
+inventory/*.ext
