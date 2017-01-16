@@ -1,0 +1,60 @@
+#jinja2: line_statement_prefix: "%", line_comment_prefix: "##"
+; {{ ansible_managed }}
+% set nl = '\n'
+; DO NOT EDIT MANUALLY
+
+; Sample stunnel configuration file for Unix by Michal Trojnara 2002-2014
+; Some options used here may be inadequate for your particular configuration
+; This sample file does *not* represent stunnel.conf defaults
+; Please consult the manual for detailed description of available options
+
+; A copy of some devices and system files is needed within the chroot jail
+; Chroot conflicts with configuration file reload and many other features
+
+; CHROOT OPTION
+% if server
+chroot  = /var/lib/stunnel4/
+% endif
+
+; UID & GIG
+setuid  = stunnel4
+setgid  = stunnel4
+
+; PID
+% if server 
+pid     = /stunnel.pid
+% else
+pid     = /var/run/stunnel4/stunnel.pid
+% endif
+; DELAY (DNS)
+delay   = no
+
+; DEBUGGING
+% if server
+log     = append
+debug   = 7
+output  = /stunnel.log
+% endif
+
+; CERTS
+cert    = /etc/stunnel/stunnel.pem
+
+; SERVICES
+% if server
+[{{ server.service }}]
+accept  = {{ server.accept }}
+connect = {{ server.connect }}
+client  = no
+% endif
+
+% for service in clients.list
+  % set client = clients.data[service]
+{{ nl }}[{{ service }}]
+accept  = {{ client.accept }}
+connect = {{ client.connect }}
+client  = yes
+% endfor
+
+##- Local Variables:
+##- Mode: jinja2
+##- End:
