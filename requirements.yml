@@ -1,0 +1,3 @@
+---
+- src: https://github.com/slgevens/selfsigned-cert-ansible.git
+...
